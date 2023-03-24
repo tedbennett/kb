@@ -104,11 +104,8 @@ impl Update<Msg> for Model {
                 Msg::MoveItem(_) => None,
                 Msg::ChangeColumn(dir) => {
                     if let Some(focussed) = self.app.focus() {
-                        match focussed {
-                            Id::ToDo => self.app.active(&Id::InProgress).unwrap(),
-                            Id::InProgress => self.app.active(&Id::Done).unwrap(),
-                            Id::Done => self.app.active(&Id::ToDo).unwrap(),
-                        }
+                        let next = focussed.cycle(&dir);
+                        self.app.active(&next).unwrap()
                     }
                     None
                 }

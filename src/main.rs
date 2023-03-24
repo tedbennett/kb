@@ -35,6 +35,24 @@ pub enum Id {
     Done,
 }
 
+impl Id {
+    pub fn cycle(&self, dir: &Direction) -> Self {
+        match dir {
+            Direction::Up | Direction::Down => self.to_owned(),
+            Direction::Right => match self {
+                Id::ToDo => Id::InProgress,
+                Id::InProgress => Id::Done,
+                Id::Done => Id::ToDo,
+            },
+            Direction::Left => match self {
+                Id::ToDo => Id::Done,
+                Id::InProgress => Id::ToDo,
+                Id::Done => Id::InProgress,
+            },
+        }
+    }
+}
+
 fn main() {
     // Setup model
     let mut model = Model::default();

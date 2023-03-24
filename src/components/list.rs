@@ -200,9 +200,13 @@ impl Component<Msg, NoUserEvent> for List {
         // Get command
         let cmd = match ev {
             Event::Keyboard(KeyEvent {
+                code: Key::BackTab,
+                modifiers: KeyModifiers::SHIFT,
+            }) => return Some(Msg::ChangeColumn(Direction::Left)), // Return focus lost
+            Event::Keyboard(KeyEvent {
                 code: Key::Tab,
                 modifiers: KeyModifiers::NONE,
-            }) => return Some(Msg::ChangeColumn(Direction::Left)), // Return focus lost
+            }) => return Some(Msg::ChangeColumn(Direction::Right)), // Return focus lost
             Event::Keyboard(KeyEvent {
                 code: Key::Esc,
                 modifiers: KeyModifiers::NONE,
