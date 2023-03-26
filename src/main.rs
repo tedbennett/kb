@@ -1,4 +1,6 @@
-use std::{error::Error, io};
+use std::{error::Error, fs, io};
+mod board;
+use board::Board;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -10,7 +12,7 @@ use tui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::Text,
-    widgets::{Block, Borders, Cell, Row, Table, TableState},
+    widgets::{Block, Borders, Cell, Row as TuiRow, Table, TableState},
     Frame, Terminal,
 };
 
@@ -22,8 +24,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+    // parse board from file
+    let board_file = "board.json";
+    let file =
+        fs::read_to_string(board_file).expect(&format!("Failed to find board file: {board_file}"));
+    let board = Board::from_file(&file).expect(&format!("Failed to parse board at: {board_file}"));
     // create app and run it
-    let app = App::new();
+    let app = App::new(board);
     let res = run_app(&mut terminal, app);
 
     // restore terminal
@@ -42,47 +49,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-struct ListItem<'a> {
-    title: &'a str,
-    description: &'a str,
-}
-struct Column<'a> {
-    title: &'a str,
-    items: Vec<ListItem<'a>>,
-}
 struct App<'a> {
     state: TableState,
-    columns: Vec<Column<'a>>,
+    board: Board<'a>,
 }
 
 impl<'a> App<'a> {
-    fn new() -> App<'a> {
+    fn new(board: Board<'a>) -> App<'a> {
         let mut state = TableState::default();
         state.select(Some(0));
-        App {
-            state,
-            columns: vec![
-                Column {
-                    title: "To Do",
-                    items: vec![ListItem {
-                        title: "List Item 1",
-                        description: "This is a description\nhello",
-                    }],
-                },
-                Column {
-                    title: "Done",
-                    items: vec![ListItem {
-                        title: "List Item 2",
-                        description: "This is a description\nhello",
-                    }],
-                },
-            ],
-        }
+        App { state, board }
     }
     pub fn next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
-                if i >= self.columns.len() - 1 {
+                if i >= self.board.columns.len() - 1 {
                     0
                 } else {
                     i + 1
@@ -97,7 +78,7 @@ impl<'a> App<'a> {
         let i = match self.state.selected() {
             Some(i) => {
                 if i == 0 {
-                    self.columns.len() - 1
+                    self.board.columns.len() - 1
                 } else {
                     i - 1
                 }
@@ -124,23 +105,23 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 }
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    let width = (100 / app.columns.len()) as u16;
+    let width = (100 / app.board.columns.len()) as u16;
     let rects = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints(vec![Constraint::Percentage(width); app.columns.len()].as_ref())
+        .constraints(vec![Constraint::Percentage(width); app.board.columns.len()].as_ref())
         .split(f.size());
 
-    app.columns.iter().enumerate().for_each(|(i, col)| {
+    app.board.columns.iter().enumerate().for_each(|(i, col)| {
         let selected_style = Style::default().fg(Color::LightGreen);
-        let rows = col.items.iter().map(|item| {
-            let height = item.description.chars().filter(|c| *c == '\n').count() + 2;
-            let mut text = Text::styled(item.title, Style::default().add_modifier(Modifier::BOLD));
+        let rows = col.rows.iter().map(|row| {
+            let height = row.description.chars().filter(|c| *c == '\n').count() + 2;
+            let mut text = Text::styled(row.title, Style::default().add_modifier(Modifier::BOLD));
             text.extend(Text::styled(
-                item.description,
+                row.description,
                 Style::default().add_modifier(Modifier::ITALIC | Modifier::DIM),
             ));
             let cell = Cell::from(text);
-            Row::new(vec![cell]).height(height as u16)
+            TuiRow::new(vec![cell]).height(height as u16)
         });
         let t = Table::new(rows)
             .block(

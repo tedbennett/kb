@@ -1,0 +1,27 @@
+{
+  "title": "My Board",
+  "columns": [
+    {
+      "title": "To Do",
+      "rows": [
+        {
+          "title": "To Do 1",
+          "description": "Needs more thought. Maybe Tomorrow"
+        }
+      ]
+    },
+    {
+      "title": "In Progress",
+      "rows": [
+        {
+          "title": "In Progress 1",
+          "description": "Currently working on it."
+        },
+        {
+          "title": "In Progress 2",
+          "description": "Working on this too."
+        }
+      ]
+    }
+  ]
+}
