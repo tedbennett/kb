@@ -33,7 +33,17 @@ impl<'a> Board<'a> {
 
     pub fn toggle_mode(&mut self) {
         self.mode = match self.mode {
-            Mode::Normal => Mode::Move,
+            Mode::Normal => {
+                if self.columns[self.selected_column]
+                    .state
+                    .selected()
+                    .is_none()
+                {
+                    Mode::Normal
+                } else {
+                    Mode::Move
+                }
+            }
             Mode::Move => Mode::Normal,
         };
     }
