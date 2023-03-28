@@ -70,6 +70,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Up => app.board.up(),
                 KeyCode::Left => app.board.left(),
                 KeyCode::Right => app.board.right(),
+                KeyCode::Esc => app.board.normal_mode(),
+                KeyCode::Char('m') => app.board.toggle_mode(),
                 _ => {}
             }
         }
@@ -87,12 +89,17 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints(vec![Constraint::Percentage(width); app.board.columns.len()].as_ref())
         .split(f.size());
 
+    let is_moving = app.board.is_moving();
     app.board
         .columns
         .iter_mut()
         .enumerate()
         .for_each(|(i, col)| {
-            let selected_style = Style::default().fg(Color::LightGreen);
+            let selected_style = Style::default().fg(if is_moving {
+                Color::LightRed
+            } else {
+                Color::Green
+            });
             let rows = col.rows.iter().map(|row| {
                 let height = row.description.chars().filter(|c| *c == '\n').count() + 2;
                 let mut text =
@@ -102,24 +109,28 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                     Style::default().add_modifier(Modifier::ITALIC | Modifier::DIM),
                 ));
                 let cell = Cell::from(text);
-                TuiRow::new(vec![cell]).height(height as u16)
+                TuiRow::new(vec![cell])
+                    .height(height as u16)
+                    .bottom_margin(1)
             });
             let t = Table::new(rows)
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
                         .border_type(tui::widgets::BorderType::Rounded)
-                        .border_style(Style::default().fg(Color::Blue))
+                        .border_style(Style::default().fg(Color::Blue).add_modifier(
+                            if app.board.selected_column == i {
+                                Modifier::empty()
+                            } else {
+                                Modifier::DIM
+                            },
+                        ))
                         .title(col.title)
                         .title_alignment(tui::layout::Alignment::Center),
                 )
                 .highlight_style(selected_style)
-                .highlight_symbol("│")
-                .widths(&[
-                    Constraint::Percentage(50),
-                    Constraint::Length(30),
-                    Constraint::Min(10),
-                ]);
+                // .highlight_symbol("│")
+                .widths(&[Constraint::Percentage(100)]);
             f.render_stateful_widget(t, rects[i], &mut col.state);
         });
 }
