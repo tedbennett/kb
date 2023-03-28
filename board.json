@@ -22,6 +22,10 @@
           "description": "Working on this too."
         }
       ]
+    },
+    {
+      "title": "Done",
+      "rows": []
     }
   ]
 }

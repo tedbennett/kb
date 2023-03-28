@@ -12,7 +12,7 @@ use tui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::Text,
-    widgets::{Block, Borders, Cell, Row as TuiRow, Table, TableState},
+    widgets::{Block, Borders, Cell, Row as TuiRow, Table},
     Frame, Terminal,
 };
 
@@ -50,42 +50,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 struct App<'a> {
-    state: TableState,
     board: Board<'a>,
 }
 
 impl<'a> App<'a> {
     fn new(board: Board<'a>) -> App<'a> {
-        let mut state = TableState::default();
-        state.select(Some(0));
-        App { state, board }
-    }
-    pub fn next(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i >= self.board.columns.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-
-    pub fn previous(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.board.columns.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
+        App { board }
     }
 }
 
@@ -96,8 +66,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
-                KeyCode::Down => app.next(),
-                KeyCode::Up => app.previous(),
+                KeyCode::Down => app.board.down(),
+                KeyCode::Up => app.board.up(),
+                KeyCode::Left => app.board.left(),
+                KeyCode::Right => app.board.right(),
                 _ => {}
             }
         }
@@ -105,40 +77,49 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 }
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    if app.board.columns.len() == 0 {
+        return;
+    }
+
     let width = (100 / app.board.columns.len()) as u16;
     let rects = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(vec![Constraint::Percentage(width); app.board.columns.len()].as_ref())
         .split(f.size());
 
-    app.board.columns.iter().enumerate().for_each(|(i, col)| {
-        let selected_style = Style::default().fg(Color::LightGreen);
-        let rows = col.rows.iter().map(|row| {
-            let height = row.description.chars().filter(|c| *c == '\n').count() + 2;
-            let mut text = Text::styled(row.title, Style::default().add_modifier(Modifier::BOLD));
-            text.extend(Text::styled(
-                row.description,
-                Style::default().add_modifier(Modifier::ITALIC | Modifier::DIM),
-            ));
-            let cell = Cell::from(text);
-            TuiRow::new(vec![cell]).height(height as u16)
+    app.board
+        .columns
+        .iter_mut()
+        .enumerate()
+        .for_each(|(i, col)| {
+            let selected_style = Style::default().fg(Color::LightGreen);
+            let rows = col.rows.iter().map(|row| {
+                let height = row.description.chars().filter(|c| *c == '\n').count() + 2;
+                let mut text =
+                    Text::styled(row.title, Style::default().add_modifier(Modifier::BOLD));
+                text.extend(Text::styled(
+                    row.description,
+                    Style::default().add_modifier(Modifier::ITALIC | Modifier::DIM),
+                ));
+                let cell = Cell::from(text);
+                TuiRow::new(vec![cell]).height(height as u16)
+            });
+            let t = Table::new(rows)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_type(tui::widgets::BorderType::Rounded)
+                        .border_style(Style::default().fg(Color::Blue))
+                        .title(col.title)
+                        .title_alignment(tui::layout::Alignment::Center),
+                )
+                .highlight_style(selected_style)
+                .highlight_symbol("│")
+                .widths(&[
+                    Constraint::Percentage(50),
+                    Constraint::Length(30),
+                    Constraint::Min(10),
+                ]);
+            f.render_stateful_widget(t, rects[i], &mut col.state);
         });
-        let t = Table::new(rows)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(tui::widgets::BorderType::Rounded)
-                    .border_style(Style::default().fg(Color::Blue))
-                    .title(col.title)
-                    .title_alignment(tui::layout::Alignment::Center),
-            )
-            .highlight_style(selected_style)
-            .highlight_symbol("│")
-            .widths(&[
-                Constraint::Percentage(50),
-                Constraint::Length(30),
-                Constraint::Min(10),
-            ]);
-        f.render_stateful_widget(t, rects[i], &mut app.state);
-    });
 }
