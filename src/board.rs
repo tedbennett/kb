@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::io::Result;
+use std::{fs, io::Result};
 use tui::widgets::TableState;
 
 #[derive(Serialize, Deserialize, PartialEq)]
@@ -22,6 +22,8 @@ pub struct Board<'a> {
     pub selected_column: usize,
     #[serde(default, skip_serializing)]
     mode: Mode,
+    #[serde(default, skip_serializing)]
+    file_name: &'a str,
 }
 
 impl<'a> Board<'a> {
@@ -148,16 +150,21 @@ impl<'a> Board<'a> {
             } else {
                 col.state.select(None)
             }
-        })
+        });
+        _ = self.save().expect("Failed to write to file");
     }
-    // pub fn move_in_col(&mut self, destination: usize) {
 
-    // }
-
-    pub fn from_file(file: &'a str) -> Result<Self> {
+    pub fn from_file(file: &'a str, file_name: &'a str) -> Result<Self> {
         let mut board: Board = serde_json::from_str(file)?;
         board.select_column(0);
+        board.file_name = file_name;
         Ok(board)
+    }
+
+    fn save(&self) -> Result<()> {
+        let serialized = serde_json::to_string(self)?;
+        fs::write(self.file_name, serialized)?;
+        Ok(())
     }
 }
 

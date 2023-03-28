@@ -28,7 +28,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let board_file = "board.json";
     let file =
         fs::read_to_string(board_file).expect(&format!("Failed to find board file: {board_file}"));
-    let board = Board::from_file(&file).expect(&format!("Failed to parse board at: {board_file}"));
+    let board = Board::from_file(&file, &board_file)
+        .expect(&format!("Failed to parse board at: {board_file}"));
     // create app and run it
     let app = App::new(board);
     let res = run_app(&mut terminal, app);
