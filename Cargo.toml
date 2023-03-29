@@ -10,3 +10,4 @@ tui = "0.19"
 crossterm = "0.25"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.94"
+tui-textarea = "0.2.0"
