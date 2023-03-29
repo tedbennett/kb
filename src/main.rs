@@ -1,7 +1,7 @@
 use std::{error::Error, fs, io};
 mod board;
+mod ui;
 use board::Board;
-
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -15,6 +15,7 @@ use tui::{
     widgets::{Block, Borders, Cell, Paragraph, Row as TuiRow, Table},
     Frame, Terminal,
 };
+use ui::{render_popup, render_status_bar};
 
 const BOARD_FILENAME: &str = "kanban.json";
 
@@ -95,8 +96,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         sections[0],
     );
 
-    f.render_widget(Paragraph::new("").alignment(Alignment::Center), sections[0]);
-
+    render_status_bar(f, sections[2]);
     if app.board.columns.len() == 0 {
         return;
     }
@@ -151,4 +151,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 .widths(&[Constraint::Percentage(100)]);
             f.render_stateful_widget(t, rects[i], &mut col.state);
         });
+    if app.board.is_moving() {
+        render_popup(f, f.size());
+    }
 }
