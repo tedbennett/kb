@@ -9,12 +9,14 @@ use crossterm::{
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    text::Text,
-    widgets::{Block, Borders, Cell, Row as TuiRow, Table},
+    text::{Span, Text},
+    widgets::{Block, Borders, Cell, Paragraph, Row as TuiRow, Table},
     Frame, Terminal,
 };
+
+const BOARD_FILENAME: &str = "kanban.json";
 
 fn main() -> Result<(), Box<dyn Error>> {
     // setup terminal
@@ -25,11 +27,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // parse board from file
-    let board_file = "board.json";
-    let file =
-        fs::read_to_string(board_file).expect(&format!("Failed to find board file: {board_file}"));
-    let board = Board::from_file(&file, &board_file)
-        .expect(&format!("Failed to parse board at: {board_file}"));
+    let file = fs::read_to_string(BOARD_FILENAME)
+        .expect(&format!("Failed to find board file: {BOARD_FILENAME}"));
+    let board = Board::from_file(&file, &BOARD_FILENAME)
+        .expect(&format!("Failed to parse board at: {BOARD_FILENAME}"));
     // create app and run it
     let app = App::new(board);
     let res = run_app(&mut terminal, app);
@@ -80,6 +81,22 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 }
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let sections = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Min(1),
+            Constraint::Length(1),
+        ])
+        .split(f.size());
+
+    f.render_widget(
+        Paragraph::new(app.board.title).alignment(Alignment::Center),
+        sections[0],
+    );
+
+    f.render_widget(Paragraph::new("").alignment(Alignment::Center), sections[0]);
+
     if app.board.columns.len() == 0 {
         return;
     }
@@ -88,7 +105,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let rects = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(vec![Constraint::Percentage(width); app.board.columns.len()].as_ref())
-        .split(f.size());
+        .split(sections[1]);
 
     let is_moving = app.board.is_moving();
     app.board
