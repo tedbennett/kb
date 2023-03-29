@@ -1,7 +1,8 @@
 use std::{error::Error, fs, io};
-mod board;
+mod app;
+use app::model::Model;
 mod ui;
-use board::Board;
+use app::board::Board;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -15,7 +16,7 @@ use tui::{
     widgets::{Block, Borders, Cell, Paragraph, Row as TuiRow, Table},
     Frame, Terminal,
 };
-use ui::{render_popup, render_status_bar};
+use ui::{render_board, render_popup, render_status_bar};
 
 const BOARD_FILENAME: &str = "kanban.json";
 
@@ -53,12 +54,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 struct App<'a> {
-    board: Board<'a>,
+    pub model: Model<'a>,
 }
 
 impl<'a> App<'a> {
     fn new(board: Board<'a>) -> App<'a> {
-        App { board }
+        App {
+            model: Model::new(board),
+        }
     }
 }
 
@@ -67,16 +70,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
         terminal.draw(|f| ui(f, &mut app))?;
 
         if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char('q') => return Ok(()),
-                KeyCode::Down => app.board.down(),
-                KeyCode::Up => app.board.up(),
-                KeyCode::Left => app.board.left(),
-                KeyCode::Right => app.board.right(),
-                KeyCode::Esc => app.board.normal_mode(),
-                KeyCode::Char('m') => app.board.toggle_mode(),
-                _ => {}
-            }
+            app.model.on_keypress(&key);
+        }
+        if app.model.quit {
+            return Ok(());
         }
     }
 }
@@ -92,66 +89,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .split(f.size());
 
     f.render_widget(
-        Paragraph::new(app.board.title).alignment(Alignment::Center),
+        Paragraph::new(app.model.board.title).alignment(Alignment::Center),
         sections[0],
     );
 
     render_status_bar(f, sections[2]);
-    if app.board.columns.len() == 0 {
-        return;
-    }
-
-    let width = (100 / app.board.columns.len()) as u16;
-    let rects = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(vec![Constraint::Percentage(width); app.board.columns.len()].as_ref())
-        .split(sections[1]);
-
-    let is_moving = app.board.is_moving();
-    app.board
-        .columns
-        .iter_mut()
-        .enumerate()
-        .for_each(|(i, col)| {
-            let selected_style = Style::default().fg(if is_moving {
-                Color::LightRed
-            } else {
-                Color::Green
-            });
-            let rows = col.rows.iter().map(|row| {
-                let height = row.description.chars().filter(|c| *c == '\n').count() + 2;
-                let mut text =
-                    Text::styled(row.title, Style::default().add_modifier(Modifier::BOLD));
-                text.extend(Text::styled(
-                    row.description,
-                    Style::default().add_modifier(Modifier::ITALIC | Modifier::DIM),
-                ));
-                let cell = Cell::from(text);
-                TuiRow::new(vec![cell])
-                    .height(height as u16)
-                    .bottom_margin(1)
-            });
-            let t = Table::new(rows)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_type(tui::widgets::BorderType::Rounded)
-                        .border_style(Style::default().fg(Color::Blue).add_modifier(
-                            if app.board.selected_column == i {
-                                Modifier::empty()
-                            } else {
-                                Modifier::DIM
-                            },
-                        ))
-                        .title(col.title)
-                        .title_alignment(tui::layout::Alignment::Center),
-                )
-                .highlight_style(selected_style)
-                // .highlight_symbol("│")
-                .widths(&[Constraint::Percentage(100)]);
-            f.render_stateful_widget(t, rects[i], &mut col.state);
-        });
-    if app.board.is_moving() {
-        render_popup(f, f.size());
-    }
+    render_board(f, sections[1], &mut app.model.board);
 }

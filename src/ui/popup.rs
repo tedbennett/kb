@@ -5,7 +5,7 @@ use tui::{
     Frame,
 };
 
-pub fn render_popup<B: Backend>(f: &mut Frame<B>, rect: Rect) -> Rect {
+pub fn render_popup<B: Backend>(f: &mut Frame<B>) -> Rect {
     // Popup takes up 60% of the view's width
     let percentage = 60;
     let layout = Layout::default()
@@ -15,10 +15,10 @@ pub fn render_popup<B: Backend>(f: &mut Frame<B>, rect: Rect) -> Rect {
             Constraint::Percentage(percentage),
             Constraint::Percentage((100 - percentage) / 2),
         ])
-        .split(rect)[1];
+        .split(f.size())[1];
 
     let popup_height = 12;
-    let spacing = (rect.height - popup_height) / 2;
+    let spacing = (f.size().height - popup_height) / 2;
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
