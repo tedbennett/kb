@@ -19,13 +19,8 @@ pub fn render_board<B: Backend>(f: &mut Frame<B>, rect: Rect, board: &mut Board)
         .constraints(vec![Constraint::Percentage(width); board.columns.len()].as_ref())
         .split(rect);
 
-    let is_moving = board.is_moving();
     board.columns.iter_mut().enumerate().for_each(|(i, col)| {
-        let selected_style = Style::default().fg(if is_moving {
-            Color::LightRed
-        } else {
-            Color::Green
-        });
+        let selected_style = Style::default().fg(Color::Green);
         let rows = col.rows.iter().map(|row| {
             let height = row.description.chars().filter(|c| *c == '\n').count() + 2;
             let mut text = Text::styled(&row.title, Style::default().add_modifier(Modifier::BOLD));

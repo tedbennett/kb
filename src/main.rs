@@ -14,7 +14,7 @@ use tui::{
     widgets::Paragraph,
     Frame, Terminal,
 };
-use ui::{render_board, render_item_popup, render_status_bar};
+use ui::{render_board, render_dialog, render_item_popup, render_status_bar};
 
 const BOARD_FILENAME: &str = "kanban.json";
 
@@ -99,5 +99,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     if app.model.is_editing() {
         render_item_popup(f, "Edit Item", &mut app.model.popup);
+    }
+
+    if app.model.is_deleting() {
+        render_dialog(f, "Delete Item?", &mut app.model.dialog);
     }
 }

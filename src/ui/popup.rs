@@ -8,25 +8,40 @@ use tui::{
 
 use crate::app::model::{PopupFocusState, PopupState};
 
-pub fn render_popup<B: Backend>(f: &mut Frame<B>, title: &str) -> Rect {
-    // Popup takes up 60% of the view's width
-    let percentage = 60;
+pub fn render_popup<B: Backend>(
+    f: &mut Frame<B>,
+    title: &str,
+    height: u16,
+    width: Option<u16>,
+) -> Rect {
+    let constraints = {
+        if let Some(width) = width {
+            [
+                Constraint::Length((f.size().width - width) / 2),
+                Constraint::Length(width),
+                Constraint::Length((f.size().width - width) / 2),
+            ]
+        } else {
+            // Popup takes up 60% of the view's width
+            let percentage = 60;
+            [
+                Constraint::Percentage((100 - percentage) / 2),
+                Constraint::Percentage(percentage),
+                Constraint::Percentage((100 - percentage) / 2),
+            ]
+        }
+    };
     let layout = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percentage) / 2),
-            Constraint::Percentage(percentage),
-            Constraint::Percentage((100 - percentage) / 2),
-        ])
+        .constraints(constraints)
         .split(f.size())[1];
 
-    let popup_height = 12;
-    let spacing = (f.size().height - popup_height) / 2;
+    let spacing = (f.size().height - height) / 2;
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(spacing),
-            Constraint::Length(11),
+            Constraint::Length(height),
             Constraint::Length(spacing),
         ])
         .split(layout)[1];

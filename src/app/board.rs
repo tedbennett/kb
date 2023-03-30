@@ -3,18 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::{fs, io::Result};
 use tui::widgets::TableState;
 
-#[derive(Serialize, Deserialize, PartialEq)]
-enum Mode {
-    Normal,
-    Move,
-}
-
-impl Default for Mode {
-    fn default() -> Self {
-        Mode::Normal
-    }
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct Board<'a> {
     pub title: &'a str,
@@ -22,43 +10,51 @@ pub struct Board<'a> {
     #[serde(default, skip_serializing)]
     pub selected_column: usize,
     #[serde(default, skip_serializing)]
-    mode: Mode,
-    #[serde(default, skip_serializing)]
     file_name: &'a str,
 }
 
 impl<'a> Board<'a> {
+    pub fn selected_column(&mut self) -> Option<&mut Column> {
+        if self.selected_column >= self.columns.len() {
+            return None;
+        }
+        Some(&mut self.columns[self.selected_column])
+    }
+    pub fn selected_row(&mut self) -> Option<&mut Row> {
+        let Some(col) = self.selected_column() else { return None;};
+        let Some(index) = col.state.selected() else { return None; };
+        Some(&mut col.rows[index])
+    }
+
     pub fn on_keypress(&mut self, key: &KeyEvent) {
-        let should_move = self.is_moving() || key.modifiers == KeyModifiers::SHIFT;
+        let should_move = key.modifiers == KeyModifiers::SHIFT;
         match key.code {
-            KeyCode::Down => self.down(should_move),
-            KeyCode::Up => self.up(should_move),
-            KeyCode::Left => self.left(should_move),
-            KeyCode::Right => self.right(should_move),
-            KeyCode::Esc => self.normal_mode(),
-            KeyCode::Char('m') => self.toggle_mode(),
+            KeyCode::Down | KeyCode::Char('j') => self.down(should_move),
+            KeyCode::Up | KeyCode::Char('k') => self.up(should_move),
+            KeyCode::Left | KeyCode::Char('h') => self.left(should_move),
+            KeyCode::Right | KeyCode::Char('l') => self.right(should_move),
             _ => {}
         }
     }
 
     pub fn insert_row(&mut self, title: String, description: String) {
-        self.columns[self.selected_column]
-            .rows
-            .push(Row { title, description });
+        let Some(col) = self.selected_column() else { return };
+        col.rows.push(Row { title, description });
         _ = self.save();
     }
 
     pub fn update_row(&mut self, title: String, description: String) {
-        let Some(index) = self.columns[self.selected_column].state.selected() else { return };
-        self.columns[self.selected_column].rows[index] = Row { title, description };
+        let Some(row) = self.selected_row() else { return };
+        *row = Row { title, description };
         _ = self.save()
     }
 
     pub fn delete_row(&mut self) {
-        let Some(index) = self.columns[self.selected_column].state.selected() else { return };
+        let Some(col) = self.selected_column() else { return };
+        let Some(index) = col.state.selected() else { return };
 
         let new_selection: Option<usize> = {
-            if self.columns[self.selected_column].rows.is_empty() {
+            if col.rows.is_empty() {
                 None
             } else {
                 if index == 0 {
@@ -68,35 +64,9 @@ impl<'a> Board<'a> {
                 }
             }
         };
-        self.columns[self.selected_column]
-            .state
-            .select(new_selection);
+        col.state.select(new_selection);
+        _ = col.rows.remove(index);
         _ = self.save();
-    }
-
-    pub fn is_moving(&'a self) -> bool {
-        self.mode == Mode::Move
-    }
-
-    pub fn toggle_mode(&mut self) {
-        self.mode = match self.mode {
-            Mode::Normal => {
-                if self.columns[self.selected_column]
-                    .state
-                    .selected()
-                    .is_none()
-                {
-                    Mode::Normal
-                } else {
-                    Mode::Move
-                }
-            }
-            Mode::Move => Mode::Normal,
-        };
-    }
-
-    pub fn normal_mode(&mut self) {
-        self.mode = Mode::Normal;
     }
 
     pub fn select_column(&mut self, index: usize) {
@@ -150,8 +120,7 @@ impl<'a> Board<'a> {
     }
 
     pub fn down(&mut self, move_row: bool) {
-        assert!(self.selected_column < self.columns.len());
-        let col = &mut self.columns[self.selected_column];
+        let Some(col) = self.selected_column() else { return };
         if col.rows.len() == 0 {
             return;
         }
@@ -173,8 +142,7 @@ impl<'a> Board<'a> {
     }
 
     pub fn up(&mut self, move_row: bool) {
-        assert!(self.selected_column < self.columns.len());
-        let col = &mut self.columns[self.selected_column];
+        let Some(col) = self.selected_column() else { return };
         if col.rows.len() == 0 {
             return;
         }
