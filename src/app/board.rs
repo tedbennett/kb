@@ -48,6 +48,32 @@ impl<'a> Board<'a> {
         _ = self.save();
     }
 
+    pub fn update_row(&mut self, title: String, description: String) {
+        let Some(index) = self.columns[self.selected_column].state.selected() else { return };
+        self.columns[self.selected_column].rows[index] = Row { title, description };
+        _ = self.save()
+    }
+
+    pub fn delete_row(&mut self) {
+        let Some(index) = self.columns[self.selected_column].state.selected() else { return };
+
+        let new_selection: Option<usize> = {
+            if self.columns[self.selected_column].rows.is_empty() {
+                None
+            } else {
+                if index == 0 {
+                    Some(0)
+                } else {
+                    Some(index - 1)
+                }
+            }
+        };
+        self.columns[self.selected_column]
+            .state
+            .select(new_selection);
+        _ = self.save();
+    }
+
     pub fn is_moving(&'a self) -> bool {
         self.mode == Mode::Move
     }

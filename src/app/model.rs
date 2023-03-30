@@ -86,8 +86,12 @@ impl<'a> Model<'a> {
         }
     }
 
-    pub fn show_popup(&self) -> bool {
+    pub fn is_creating(&self) -> bool {
         self.mode == Mode::Create
+    }
+
+    pub fn is_editing(&self) -> bool {
+        self.mode == Mode::Edit
     }
 
     pub fn hide_popup(&mut self) {
@@ -95,8 +99,33 @@ impl<'a> Model<'a> {
         self.popup = PopupState::default();
     }
 
+    pub fn edit_item(&mut self) {
+        let Some(index) = self.board.columns[self.board.selected_column].state.selected() else { return };
+        let selected = &self.board.columns[self.board.selected_column].rows[index];
+        self.popup = PopupState {
+            title: TextArea::new(selected.title.split('\n').map(|s| s.to_string()).collect()),
+            description: TextArea::new(
+                selected
+                    .description
+                    .split('\n')
+                    .map(|s| s.to_string())
+                    .collect(),
+            ),
+            focussed: PopupFocusState::Title,
+        };
+        self.mode = Mode::Edit;
+    }
+
     pub fn create_item(&mut self) {
         self.board.insert_row(
+            self.popup.title.lines().join("\n"),
+            self.popup.description.lines().join("\n"),
+        );
+        self.hide_popup();
+    }
+
+    pub fn update_item(&mut self) {
+        self.board.update_row(
             self.popup.title.lines().join("\n"),
             self.popup.description.lines().join("\n"),
         );
@@ -116,6 +145,10 @@ impl<'a> Model<'a> {
                     self.mode = Mode::Create;
                     return;
                 }
+                if key.code == KeyCode::Enter {
+                    self.edit_item();
+                    return;
+                }
                 self.board.on_keypress(&key)
             }
             Mode::Create => {
@@ -129,7 +162,17 @@ impl<'a> Model<'a> {
                 }
                 self.popup.on_keypress(key);
             }
-            Mode::Edit => self.popup.on_keypress(key),
+            Mode::Edit => {
+                if key.code == KeyCode::Char('d') && key.modifiers == KeyModifiers::CONTROL {
+                    self.update_item();
+                    return;
+                }
+                if key.code == KeyCode::Esc {
+                    self.hide_popup();
+                    return;
+                }
+                self.popup.on_keypress(key)
+            }
         }
     }
 }

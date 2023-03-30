@@ -14,7 +14,7 @@ use tui::{
     widgets::Paragraph,
     Frame, Terminal,
 };
-use ui::{render_board, render_create_popup, render_status_bar};
+use ui::{render_board, render_item_popup, render_status_bar};
 
 const BOARD_FILENAME: &str = "kanban.json";
 
@@ -93,7 +93,11 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     render_status_bar(f, sections[2]);
     render_board(f, sections[1], &mut app.model.board);
-    if app.model.show_popup() {
-        render_create_popup(f, &mut app.model.popup);
+    if app.model.is_creating() {
+        render_item_popup(f, "Create Item", &mut app.model.popup);
+    }
+
+    if app.model.is_editing() {
+        render_item_popup(f, "Edit Item", &mut app.model.popup);
     }
 }
