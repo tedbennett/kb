@@ -4,19 +4,17 @@ use app::model::Model;
 mod ui;
 use app::board::Board;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen},
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    text::{Span, Text},
-    widgets::{Block, Borders, Cell, Paragraph, Row as TuiRow, Table},
+    widgets::Paragraph,
     Frame, Terminal,
 };
-use ui::{render_board, render_popup, render_status_bar};
+use ui::{render_board, render_create_popup, render_status_bar};
 
 const BOARD_FILENAME: &str = "kanban.json";
 
@@ -70,7 +68,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
         terminal.draw(|f| ui(f, &mut app))?;
 
         if let Event::Key(key) = event::read()? {
-            app.model.on_keypress(&key);
+            app.model.on_keypress(key);
         }
         if app.model.quit {
             return Ok(());
@@ -95,4 +93,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     render_status_bar(f, sections[2]);
     render_board(f, sections[1], &mut app.model.board);
+    if app.model.show_popup() {
+        render_create_popup(f, &mut app.model.popup);
+    }
 }

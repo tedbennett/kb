@@ -1,11 +1,11 @@
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     widgets::{Block, BorderType, Borders, Clear},
     Frame,
 };
 
-pub fn render_popup<B: Backend>(f: &mut Frame<B>) -> Rect {
+pub fn render_popup<B: Backend>(f: &mut Frame<B>, title: &str) -> Rect {
     // Popup takes up 60% of the view's width
     let percentage = 60;
     let layout = Layout::default()
@@ -29,12 +29,12 @@ pub fn render_popup<B: Backend>(f: &mut Frame<B>) -> Rect {
         .split(layout)[1];
 
     f.render_widget(Clear, popup_layout);
-    f.render_widget(
-        Block::default()
-            .title("Popup")
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded),
-        popup_layout,
-    );
-    popup_layout
+    let popup = Block::default()
+        .title(title)
+        .title_alignment(Alignment::Center)
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+    let popup_inner = popup.inner(popup_layout);
+    f.render_widget(popup, popup_layout);
+    popup_inner
 }

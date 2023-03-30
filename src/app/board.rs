@@ -18,7 +18,7 @@ impl Default for Mode {
 #[derive(Serialize, Deserialize)]
 pub struct Board<'a> {
     pub title: &'a str,
-    pub columns: Vec<Column<'a>>,
+    pub columns: Vec<Column>,
     #[serde(default, skip_serializing)]
     pub selected_column: usize,
     #[serde(default, skip_serializing)]
@@ -39,6 +39,13 @@ impl<'a> Board<'a> {
             KeyCode::Char('m') => self.toggle_mode(),
             _ => {}
         }
+    }
+
+    pub fn insert_row(&mut self, title: String, description: String) {
+        self.columns[self.selected_column]
+            .rows
+            .push(Row { title, description });
+        _ = self.save();
     }
 
     pub fn is_moving(&'a self) -> bool {
@@ -208,15 +215,15 @@ impl From<TableStateDef> for TableState {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Column<'a> {
-    pub title: &'a str,
-    pub rows: Vec<Row<'a>>,
+pub struct Column {
+    pub title: String,
+    pub rows: Vec<Row>,
     #[serde(default, skip_serializing, with = "TableStateDef")]
     pub state: TableState,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Row<'a> {
-    pub title: &'a str,
-    pub description: &'a str,
+pub struct Row {
+    pub title: String,
+    pub description: String,
 }

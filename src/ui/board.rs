@@ -28,9 +28,9 @@ pub fn render_board<B: Backend>(f: &mut Frame<B>, rect: Rect, board: &mut Board)
         });
         let rows = col.rows.iter().map(|row| {
             let height = row.description.chars().filter(|c| *c == '\n').count() + 2;
-            let mut text = Text::styled(row.title, Style::default().add_modifier(Modifier::BOLD));
+            let mut text = Text::styled(&row.title, Style::default().add_modifier(Modifier::BOLD));
             text.extend(Text::styled(
-                row.description,
+                &row.description,
                 Style::default().add_modifier(Modifier::ITALIC | Modifier::DIM),
             ));
             let cell = Cell::from(text);
@@ -50,7 +50,7 @@ pub fn render_board<B: Backend>(f: &mut Frame<B>, rect: Rect, board: &mut Board)
                             Modifier::DIM
                         },
                     ))
-                    .title(col.title)
+                    .title(col.title.clone())
                     .title_alignment(tui::layout::Alignment::Center),
             )
             .highlight_style(selected_style)
