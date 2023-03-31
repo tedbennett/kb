@@ -7,7 +7,7 @@ use tui::{
     Frame,
 };
 
-use crate::app::model::{DialogFocusState, DialogState};
+use crate::app::{DialogFields, DialogState, PopupFields};
 
 use super::popup::render_popup;
 
@@ -29,17 +29,19 @@ pub fn render_dialog<B: Backend>(f: &mut Frame<B>, message: &str, state: &mut Di
         .constraints([Constraint::Percentage(50); 2])
         .split(sections[3]);
     f.render_widget(
-        button_widget(state, DialogFocusState::Cancel),
+        button_widget(state.focussed == DialogFields::Cancel, DialogFields::Cancel),
         button_sections[0],
     );
     f.render_widget(
-        button_widget(state, DialogFocusState::Confirm),
+        button_widget(
+            state.focussed == DialogFields::Confirm,
+            DialogFields::Confirm,
+        ),
         button_sections[1],
     );
 }
 
-fn button_widget(state: &DialogState, field: DialogFocusState) -> Paragraph {
-    let focussed = state.focussed == field;
+pub fn button_widget<F: PopupFields>(focussed: bool, field: F) -> Paragraph<'static> {
     let style = if focussed {
         Style::default()
             .add_modifier(Modifier::BOLD)
@@ -48,5 +50,5 @@ fn button_widget(state: &DialogState, field: DialogFocusState) -> Paragraph {
         Style::default().bg(Color::DarkGray)
     };
 
-    Paragraph::new(Span::styled(field.text().to_string(), style)).alignment(Alignment::Center)
+    Paragraph::new(Span::styled(field.title().to_string(), style)).alignment(Alignment::Center)
 }

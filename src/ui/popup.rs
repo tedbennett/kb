@@ -5,8 +5,9 @@ use tui::{
     widgets::{Block, BorderType, Borders, Clear, Paragraph},
     Frame,
 };
+use tui_textarea::TextArea;
 
-use crate::app::model::{PopupFocusState, PopupState};
+use crate::app::{PopupFields, RowFields, RowPopupState};
 
 pub fn render_popup<B: Backend>(
     f: &mut Frame<B>,
@@ -57,24 +58,20 @@ pub fn render_popup<B: Backend>(
     popup_inner
 }
 
-pub fn render_text_area<B: Backend>(
+pub fn render_text_area<B: Backend, F: PopupFields>(
     f: &mut Frame<B>,
-    field: PopupFocusState,
-    state: &mut PopupState,
+    field: F,
+    state: &mut TextArea,
+    focussed: bool,
     rect: Rect,
 ) {
-    let focussed = field == state.focussed;
-    let text_area = match field {
-        PopupFocusState::Description => &mut state.description,
-        PopupFocusState::Title => &mut state.title,
-    };
     let cursor_style = if focussed {
         Style::default().add_modifier(Modifier::REVERSED)
     } else {
         Style::default()
     };
-    text_area.set_cursor_style(cursor_style);
-    text_area.set_cursor_line_style(Style::default());
+    state.set_cursor_style(cursor_style);
+    state.set_cursor_line_style(Style::default());
 
     let block_style = if focussed {
         Style::default().fg(Color::Green)
@@ -92,7 +89,7 @@ pub fn render_text_area<B: Backend>(
     let inner_rect = block.inner(rect);
     f.render_widget(block, rect);
 
-    if let Some(first) = text_area.lines().first() {
+    if let Some(first) = state.lines().first() {
         if first.len() == 0 {
             f.render_widget(
                 Paragraph::new(field.placeholder())
@@ -100,7 +97,7 @@ pub fn render_text_area<B: Backend>(
                 inner_rect,
             );
         } else {
-            f.render_widget(text_area.widget(), inner_rect);
+            f.render_widget(state.widget(), inner_rect);
         }
     }
 }

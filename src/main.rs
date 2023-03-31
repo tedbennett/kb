@@ -14,7 +14,7 @@ use tui::{
     widgets::Paragraph,
     Frame, Terminal,
 };
-use ui::{render_board, render_dialog, render_item_popup, render_status_bar};
+use ui::{render_board, render_column_popup, render_dialog, render_item_popup, render_status_bar};
 
 const BOARD_FILENAME: &str = "kanban.json";
 
@@ -103,5 +103,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     if app.model.is_deleting() {
         render_dialog(f, "Delete Item?", &mut app.model.dialog);
+    }
+    if app.model.is_creating_column() {
+        render_column_popup(f, "Create Column", &mut app.model.column);
+    }
+    if app.model.is_editing_column() {
+        render_column_popup(f, "Edit Column", &mut app.model.column);
+    }
+    if app.model.is_deleting_column() {
+        render_dialog(f, "Delete Column?", &mut app.model.dialog);
     }
 }

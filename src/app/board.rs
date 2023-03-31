@@ -69,6 +69,30 @@ impl<'a> Board<'a> {
         _ = self.save();
     }
 
+    pub fn create_column(&mut self, title: String) {
+        self.columns.push(Column {
+            title,
+            rows: Vec::new(),
+            state: TableState::default(),
+        });
+        _ = self.save();
+    }
+
+    pub fn update_column(&mut self, title: String) {
+        let Some(col) = self.selected_column() else { return};
+        col.title = title;
+        _ = self.save();
+    }
+
+    pub fn delete_column(&mut self) {
+        if self.selected_column >= self.columns.len() {
+            return;
+        }
+        self.columns.remove(self.selected_column);
+        self.select_column(0);
+        _ = self.save();
+    }
+
     pub fn select_column(&mut self, index: usize) {
         if self.columns.len() == 0 {
             return;
