@@ -1,3 +1,4 @@
+pub mod args;
 pub mod board;
 mod column_popup;
 mod dialog;

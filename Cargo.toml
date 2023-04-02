@@ -1,8 +1,9 @@
 [package]
-name = "kanban"
+name = "kb"
 version = "0.1.0"
 edition = "2021"
-
+authors = ["Ted Bennett"]
+description = "CLI Kanban App"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -11,3 +12,4 @@ crossterm = "0.25"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.94"
 tui-textarea = "0.2.0"
+clap = { version = "4.2.1", features = ["derive"] }

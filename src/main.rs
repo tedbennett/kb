@@ -1,8 +1,10 @@
 use std::{error::Error, fs, io};
 mod app;
-use app::model::{Mode, Model};
+use app::args::Args;
+use app::model::{Model, Popup};
 mod ui;
 use app::board::Board;
+use clap::Parser;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     execute,
@@ -16,9 +18,10 @@ use tui::{
 };
 use ui::{render_board, render_column_popup, render_dialog, render_item_popup, render_status_bar};
 
-const BOARD_FILENAME: &str = "kanban.json";
+const BOARD_FILENAME: &str = "kb.json";
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let args = Args::parse();
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -27,15 +30,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // parse board from file
-    let file = fs::read_to_string(BOARD_FILENAME)
-        .expect(&format!("Failed to find board file: {BOARD_FILENAME}"));
-    let board = Board::from_file(&file, &BOARD_FILENAME)
-        .expect(&format!("Failed to parse board at: {BOARD_FILENAME}"));
+    let filename = args.filename.unwrap_or(BOARD_FILENAME.to_string());
+    let file = fs::read_to_string(&filename)?;
+    let board = Board::from_file(&file, &filename)?;
     // create app and run it
     let app = App::new(board);
     let res = run_app(&mut terminal, app);
 
-    // restore terminal
+    // cleanup - restore terminal
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
@@ -93,13 +95,13 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     render_status_bar(f, sections[2]);
     render_board(f, sections[1], &mut app.model.board);
-    match &mut app.model.mode {
-        Mode::CreateRow(state) => render_item_popup(f, "Create Item", state),
-        Mode::EditRow(state) => render_item_popup(f, "Edit Item", state),
-        Mode::DeleteRow(state) => render_dialog(f, "Delete Item?", state),
-        Mode::CreateColumn(state) => render_column_popup(f, "Create Column", state),
-        Mode::EditColumn(state) => render_column_popup(f, "Edit Column", state),
-        Mode::DeleteColumn(state) => render_dialog(f, "Delete Column?", state),
+    match &mut app.model.popup {
+        Popup::CreateRow(state) => render_item_popup(f, "Create Item", state),
+        Popup::EditRow(state) => render_item_popup(f, "Edit Item", state),
+        Popup::DeleteRow(state) => render_dialog(f, "Delete Item?", state),
+        Popup::CreateColumn(state) => render_column_popup(f, "Create Column", state),
+        Popup::EditColumn(state) => render_column_popup(f, "Edit Column", state),
+        Popup::DeleteColumn(state) => render_dialog(f, "Delete Column?", state),
         _ => {}
     };
 }

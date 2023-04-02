@@ -4,11 +4,10 @@ use super::{
     board::Board, dialog::DialogState, row_popup::RowPopupState, ColumnPopupState, DialogFields,
 };
 
-// #[derive(PartialEq)]
-pub enum Mode<'a> {
+pub enum Popup<'a> {
+    None,
     CreateRow(RowPopupState<'a>),
     EditRow(RowPopupState<'a>),
-    Normal,
     DeleteRow(DialogState),
     CreateColumn(ColumnPopupState<'a>),
     EditColumn(ColumnPopupState<'a>),
@@ -17,64 +16,73 @@ pub enum Mode<'a> {
 
 pub struct Model<'a> {
     pub board: Board<'a>,
-    pub mode: Mode<'a>,
+    pub popup: Popup<'a>,
     pub quit: bool,
 }
 
 impl<'a> Model<'a> {
     pub fn new(board: Board<'a>) -> Self {
+        let empty_board = board.columns.is_empty();
         Model {
             board,
-            mode: Mode::Normal,
+            popup: if empty_board {
+                Popup::CreateColumn(ColumnPopupState::new(""))
+            } else {
+                Popup::None
+            },
             quit: false,
         }
     }
 
     pub fn edit_item(&mut self) {
         let Some(row) = self.board.selected_row() else { return };
-        self.mode = Mode::EditRow(RowPopupState::new(&row.title, &row.description));
+        self.popup = Popup::EditRow(RowPopupState::new(&row.title, &row.description));
     }
 
     pub fn edit_column(&mut self) {
         let Some(col) = self.board.selected_column() else { return };
-        self.mode = Mode::EditColumn(ColumnPopupState::new(&col.title));
+        self.popup = Popup::EditColumn(ColumnPopupState::new(&col.title));
     }
 
     fn open_delete_dialog(&mut self) {
         if self.board.selected_row().is_none() {
             return;
         }
-        self.mode = Mode::DeleteRow(DialogState::new("Delete Item?"));
+        self.popup = Popup::DeleteRow(DialogState::new("Delete Item?"));
     }
 
     pub fn create_item(&mut self, title: &str, description: &str) {
         self.board
             .insert_row(title.to_string(), description.to_string());
-        self.mode = Mode::Normal;
+        self.popup = Popup::None;
     }
 
     pub fn update_item(&mut self, title: &str, description: &str) {
         self.board
             .update_row(title.to_string(), description.to_string());
-        self.mode = Mode::Normal;
+        self.popup = Popup::None;
     }
 
     pub fn create_column(&mut self, title: &str) {
         self.board.create_column(title.to_string());
-        self.mode = Mode::Normal;
+        self.popup = Popup::None;
     }
     pub fn update_column(&mut self, title: &str) {
         self.board.update_column(title.to_string());
-        self.mode = Mode::Normal;
+        self.popup = Popup::None;
     }
     pub fn delete_column(&mut self) {
         self.board.delete_column();
-        self.mode = Mode::Normal;
+        self.popup = if self.board.columns.is_empty() {
+            Popup::CreateColumn(ColumnPopupState::new(""))
+        } else {
+            Popup::None
+        };
     }
 
     pub fn delete_item(&mut self) {
         self.board.delete_row();
-        self.mode = Mode::Normal;
+        self.popup = Popup::None;
     }
 
     pub fn on_keypress(&mut self, key: KeyEvent) {
@@ -82,20 +90,20 @@ impl<'a> Model<'a> {
             self.quit = true;
             return;
         }
-        match &mut self.mode {
-            Mode::Normal => match key.code {
+        match &mut self.popup {
+            Popup::None => match key.code {
                 KeyCode::Char('q') => self.quit = true,
-                KeyCode::Char('c') => self.mode = Mode::CreateRow(RowPopupState::default()),
-                KeyCode::Char('C') => self.mode = Mode::CreateColumn(ColumnPopupState::new("")),
+                KeyCode::Char('c') => self.popup = Popup::CreateRow(RowPopupState::default()),
+                KeyCode::Char('C') => self.popup = Popup::CreateColumn(ColumnPopupState::new("")),
                 KeyCode::Char('E') => self.edit_column(),
                 KeyCode::Enter | KeyCode::Char('e') => self.edit_item(),
                 KeyCode::Backspace | KeyCode::Char('d') => self.open_delete_dialog(),
                 KeyCode::Char('D') => {
-                    self.mode = Mode::DeleteColumn(DialogState::new("Delete Column?"))
+                    self.popup = Popup::DeleteColumn(DialogState::new("Delete Column?"))
                 }
                 _ => self.board.on_keypress(&key),
             },
-            Mode::CreateRow(state) => match key {
+            Popup::CreateRow(state) => match key {
                 KeyEvent {
                     code: KeyCode::Char('d'),
                     modifiers: KeyModifiers::CONTROL,
@@ -107,10 +115,10 @@ impl<'a> Model<'a> {
                 }
                 KeyEvent {
                     code: KeyCode::Esc, ..
-                } => self.mode = Mode::Normal,
+                } => self.popup = Popup::None,
                 _ => state.on_keypress(key),
             },
-            Mode::EditRow(state) => match key {
+            Popup::EditRow(state) => match key {
                 KeyEvent {
                     code: KeyCode::Char('d'),
                     modifiers: KeyModifiers::CONTROL,
@@ -122,42 +130,43 @@ impl<'a> Model<'a> {
                 }
                 KeyEvent {
                     code: KeyCode::Esc, ..
-                } => self.mode = Mode::Normal,
+                } => self.popup = Popup::None,
                 _ => state.on_keypress(key),
             },
-            Mode::DeleteRow(state) => match key.code {
-                KeyCode::Esc => self.mode = Mode::Normal,
+            Popup::DeleteRow(state) => match key.code {
+                KeyCode::Esc => self.popup = Popup::None,
                 KeyCode::Enter => {
                     if state.focussed == DialogFields::Confirm {
                         self.delete_item();
                     }
-                    self.mode = Mode::Normal;
+                    self.popup = Popup::None;
                 }
                 _ => state.on_keypress(key),
             },
-            Mode::CreateColumn(state) => match key.code {
-                KeyCode::Esc => self.mode = Mode::Normal,
+            Popup::CreateColumn(state) => match key.code {
+                KeyCode::Esc => self.popup = Popup::None,
                 KeyCode::Enter => {
                     let title = &state.title.lines().join("");
                     self.create_column(title);
                 }
                 _ => state.on_keypress(key),
             },
-            Mode::EditColumn(state) => match key.code {
-                KeyCode::Esc => self.mode = Mode::Normal,
+            Popup::EditColumn(state) => match key.code {
+                KeyCode::Esc => self.popup = Popup::None,
                 KeyCode::Enter => {
                     let title = &state.title.lines().join("");
                     self.update_column(title);
                 }
                 _ => state.on_keypress(key),
             },
-            Mode::DeleteColumn(state) => match key.code {
-                KeyCode::Esc => self.mode = Mode::Normal,
+            Popup::DeleteColumn(state) => match key.code {
+                KeyCode::Esc => self.popup = Popup::None,
                 KeyCode::Enter => {
                     if state.focussed == DialogFields::Confirm {
                         self.delete_column();
+                    } else {
+                        self.popup = Popup::None;
                     }
-                    self.mode = Mode::Normal;
                 }
                 _ => state.on_keypress(key),
             },
