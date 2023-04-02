@@ -1,6 +1,6 @@
 use std::{error::Error, fs, io};
 mod app;
-use app::model::Model;
+use app::model::{Mode, Model};
 mod ui;
 use app::board::Board;
 use crossterm::{
@@ -93,24 +93,13 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     render_status_bar(f, sections[2]);
     render_board(f, sections[1], &mut app.model.board);
-    if app.model.is_creating() {
-        render_item_popup(f, "Create Item", &mut app.model.popup);
-    }
-
-    if app.model.is_editing() {
-        render_item_popup(f, "Edit Item", &mut app.model.popup);
-    }
-
-    if app.model.is_deleting() {
-        render_dialog(f, "Delete Item?", &mut app.model.dialog);
-    }
-    if app.model.is_creating_column() {
-        render_column_popup(f, "Create Column", &mut app.model.column);
-    }
-    if app.model.is_editing_column() {
-        render_column_popup(f, "Edit Column", &mut app.model.column);
-    }
-    if app.model.is_deleting_column() {
-        render_dialog(f, "Delete Column?", &mut app.model.dialog);
-    }
+    match &mut app.model.mode {
+        Mode::CreateRow(state) => render_item_popup(f, "Create Item", state),
+        Mode::EditRow(state) => render_item_popup(f, "Edit Item", state),
+        Mode::DeleteRow(state) => render_dialog(f, "Delete Item?", state),
+        Mode::CreateColumn(state) => render_column_popup(f, "Create Column", state),
+        Mode::EditColumn(state) => render_column_popup(f, "Edit Column", state),
+        Mode::DeleteColumn(state) => render_dialog(f, "Delete Column?", state),
+        _ => {}
+    };
 }

@@ -6,10 +6,7 @@ use tui::{
 
 use crate::app::{ColumnFields, ColumnPopupState};
 
-use super::{
-    delete_popup::button_widget,
-    popup::{render_popup, render_text_area},
-};
+use super::popup::{render_popup, render_text_area};
 
 pub fn render_column_popup<B: Backend>(
     f: &mut Frame<B>,
@@ -21,18 +18,5 @@ pub fn render_column_popup<B: Backend>(
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Length(1)])
         .split(frame);
-    render_text_area(
-        f,
-        ColumnFields::Title,
-        &mut state.title,
-        state.focussed == ColumnFields::Title,
-        sections[0],
-    );
-    f.render_widget(
-        button_widget(
-            state.focussed == ColumnFields::Confirm,
-            ColumnFields::Confirm,
-        ),
-        sections[1],
-    )
+    render_text_area(f, ColumnFields::Title, &mut state.title, true, sections[0]);
 }

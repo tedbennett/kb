@@ -7,12 +7,10 @@ use super::PopupFields;
 pub enum ColumnFields {
     #[default]
     Title,
-    Confirm,
 }
 
 #[derive(Default)]
 pub struct ColumnPopupState<'a> {
-    pub focussed: ColumnFields,
     pub title: TextArea<'a>,
 }
 
@@ -20,14 +18,12 @@ impl PopupFields for ColumnFields {
     fn title(&self) -> &str {
         match self {
             Self::Title => "Title",
-            Self::Confirm => "Confirm",
         }
     }
 
     fn placeholder(&self) -> &str {
         match self {
             Self::Title => "Enter title...",
-            Self::Confirm => "",
         }
     }
 }

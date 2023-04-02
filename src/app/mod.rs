@@ -1,9 +1,8 @@
+pub mod board;
 mod column_popup;
 mod dialog;
-mod row_popup;
-
-pub mod board;
 pub mod model;
+mod row_popup;
 
 pub use column_popup::{ColumnFields, ColumnPopupState};
 pub use dialog::{DialogFields, DialogState};

@@ -28,6 +28,12 @@ pub struct DialogState {
 }
 
 impl DialogState {
+    pub fn new(message: &str) -> Self {
+        Self {
+            message: message.to_string(),
+            focussed: DialogFields::default(),
+        }
+    }
     pub fn cycle_focus(&mut self) {
         self.focussed = match self.focussed {
             DialogFields::Confirm => DialogFields::Cancel,

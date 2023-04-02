@@ -7,7 +7,7 @@ use tui::{
 };
 use tui_textarea::TextArea;
 
-use crate::app::{PopupFields, RowFields, RowPopupState};
+use crate::app::PopupFields;
 
 pub fn render_popup<B: Backend>(
     f: &mut Frame<B>,
