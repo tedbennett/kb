@@ -1,5 +1,5 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use tui_textarea::TextArea;
+use tui_textarea::{CursorMove, TextArea};
 
 pub trait PopupFields {
     fn title(&self) -> &str;
@@ -46,6 +46,17 @@ pub struct RowPopupState<'a> {
 }
 
 impl<'a> RowPopupState<'a> {
+    pub fn new(title: &str, description: &str) -> Self {
+        let mut new = Self {
+            title: TextArea::new(title.lines().map(|s| s.to_string()).collect()),
+            description: TextArea::new(description.lines().map(|s| s.to_string()).collect()),
+            focussed: RowFields::Title,
+        };
+        new.title.move_cursor(CursorMove::End);
+        new.description.move_cursor(CursorMove::End);
+        new
+    }
+
     pub fn on_keypress(&mut self, key: KeyEvent) {
         if key.code == KeyCode::Tab {
             self.cycle_focus();

@@ -1,11 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use tui_textarea::TextArea;
 
 use super::{
-    board::Board,
-    dialog::DialogState,
-    row_popup::{RowFields, RowPopupState},
-    ColumnPopupState, DialogFields,
+    board::Board, dialog::DialogState, row_popup::RowPopupState, ColumnPopupState, DialogFields,
 };
 
 // #[derive(PartialEq)]
@@ -36,22 +32,12 @@ impl<'a> Model<'a> {
 
     pub fn edit_item(&mut self) {
         let Some(row) = self.board.selected_row() else { return };
-        let state = RowPopupState {
-            title: TextArea::new(row.title.split('\n').map(|s| s.to_string()).collect()),
-            description: TextArea::new(
-                row.description.split('\n').map(|s| s.to_string()).collect(),
-            ),
-            focussed: RowFields::Title,
-        };
-        self.mode = Mode::EditRow(state);
+        self.mode = Mode::EditRow(RowPopupState::new(&row.title, &row.description));
     }
 
     pub fn edit_column(&mut self) {
         let Some(col) = self.board.selected_column() else { return };
-        let state = ColumnPopupState {
-            title: TextArea::new(col.title.split('\n').map(|s| s.to_string()).collect()),
-        };
-        self.mode = Mode::EditColumn(state);
+        self.mode = Mode::EditColumn(ColumnPopupState::new(&col.title));
     }
 
     fn open_delete_dialog(&mut self) {
@@ -100,7 +86,7 @@ impl<'a> Model<'a> {
             Mode::Normal => match key.code {
                 KeyCode::Char('q') => self.quit = true,
                 KeyCode::Char('c') => self.mode = Mode::CreateRow(RowPopupState::default()),
-                KeyCode::Char('C') => self.mode = Mode::CreateColumn(ColumnPopupState::default()),
+                KeyCode::Char('C') => self.mode = Mode::CreateColumn(ColumnPopupState::new("")),
                 KeyCode::Char('E') => self.edit_column(),
                 KeyCode::Enter | KeyCode::Char('e') => self.edit_item(),
                 KeyCode::Backspace | KeyCode::Char('d') => self.open_delete_dialog(),

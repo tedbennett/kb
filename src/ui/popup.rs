@@ -90,7 +90,7 @@ pub fn render_text_area<B: Backend, F: PopupFields>(
     f.render_widget(block, rect);
 
     if let Some(first) = state.lines().first() {
-        if first.len() == 0 {
+        if first.len() == 0 && state.lines().len() == 1 {
             f.render_widget(
                 Paragraph::new(field.placeholder())
                     .style(Style::default().add_modifier(Modifier::DIM | Modifier::ITALIC)),
