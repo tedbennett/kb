@@ -14,7 +14,7 @@ pub fn render_status_bar<B: Backend>(f: &mut Frame<B>, rect: Rect) {
         .split(rect);
 
     f.render_widget(
-        Paragraph::new("Move Cursor: ↑↓←→ | Switch Mode: M")
+        Paragraph::new("Move Cursor: ↑↓←→ | Move item: ⇧ | Create Item: c | Edit Item: e")
             .style(Style::default().add_modifier(Modifier::ITALIC | Modifier::DIM))
             .alignment(Alignment::Left),
         subrects[0],

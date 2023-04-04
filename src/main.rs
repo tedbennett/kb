@@ -1,17 +1,14 @@
 use std::{error::Error, fs, io};
 mod app;
+mod terminal;
 use app::args::Args;
 use app::model::{Model, Popup};
 mod ui;
 use app::board::Board;
 use clap::Parser;
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen},
-};
+use crossterm::event::{self, Event};
 use tui::{
-    backend::{Backend, CrosstermBackend},
+    backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
     widgets::Paragraph,
     Frame, Terminal,
@@ -23,11 +20,7 @@ const BOARD_FILENAME: &str = "kb.json";
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     // setup terminal
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+    let mut terminal = terminal::init()?;
 
     // parse board from file
     let filename = args.filename.unwrap_or(BOARD_FILENAME.to_string());
@@ -38,14 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let res = run_app(&mut terminal, app);
 
     // cleanup - restore terminal
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        EnterAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
-
+    terminal::reset(&mut terminal)?;
     if let Err(err) = res {
         println!("{:?}", err)
     }
