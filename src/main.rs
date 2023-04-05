@@ -1,11 +1,15 @@
-use std::{error::Error, fs, io};
+use std::path::Path;
+mod error;
+use color_eyre::Report;
+use std::fs;
 mod app;
 mod terminal;
-use app::args::Args;
+use app::args::{Cli, Commands};
 use app::model::{Model, Popup};
 mod ui;
 use app::board::Board;
 use clap::Parser;
+
 use crossterm::event::{self, Event};
 use tui::{
     backend::Backend,
@@ -14,21 +18,16 @@ use tui::{
     Frame, Terminal,
 };
 use ui::{render_board, render_column_popup, render_dialog, render_item_popup, render_status_bar};
-
 const BOARD_FILENAME: &str = "kb.json";
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let args = Args::parse();
-    // setup terminal
+fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
+
+    let args = Cli::parse();
+    let board = parse_board(args)?;
     let mut terminal = terminal::init()?;
 
-    // parse board from file
-    let filename = args.filename.unwrap_or(BOARD_FILENAME.to_string());
-    let file = fs::read_to_string(&filename)?;
-    let board = Board::from_file(&file, &filename)?;
-    // create app and run it
-    let app = App::new(board);
-    let res = run_app(&mut terminal, app);
+    let res = run_app(&mut terminal, board);
 
     // cleanup - restore terminal
     terminal::reset(&mut terminal)?;
@@ -39,19 +38,71 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn get_boolean_input(msg: &str) -> bool {
+    loop {
+        let mut buf = String::new();
+        println!("{}", msg);
+        if std::io::stdin().read_line(&mut buf).is_ok() {
+            match buf.to_lowercase().trim() {
+                "n" => return false,
+                "" | "y" => return true,
+                _ => {}
+            }
+        }
+    }
+}
+
+fn get_full_filename(filename: &Option<String>) -> color_eyre::Result<String> {
+    match filename {
+        Some(f) => {
+            let path = Path::new(".kb");
+            if !path.exists() || !path.is_dir() {
+                if get_boolean_input(".kb directory not found. Create one? Y/n ") {
+                    _ = fs::create_dir(&path);
+                } else {
+                    return Err(Report::msg("Failed to find .kb directory"));
+                }
+            }
+            Ok(format!(".kb/{}.json", f))
+        }
+        None => Ok(BOARD_FILENAME.to_string()),
+    }
+}
+
+fn parse_board<'a>(args: Cli) -> color_eyre::Result<Board> {
+    match &args.command {
+        Some(Commands::New(arg)) => {
+            let filename = get_full_filename(&arg.filename)?;
+            // Make sure file does not already exist
+            if Path::new(&filename).exists() {
+                return Err(Report::msg("File already exists"));
+            }
+            Board::create(&filename)
+        }
+        None => {
+            let filename = get_full_filename(&args.filename)?;
+            println!("{}", &filename);
+            let file = fs::read_to_string(&filename)?;
+            Board::from_file(file, filename)
+        }
+    }
+}
+
 struct App<'a> {
     pub model: Model<'a>,
 }
 
 impl<'a> App<'a> {
-    fn new(board: Board<'a>) -> App<'a> {
+    fn new(board: Board) -> App<'a> {
         App {
             model: Model::new(board),
         }
     }
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, board: Board) -> color_eyre::Result<()> {
+    // create app and run it
+    let mut app = App::new(board);
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
 
@@ -73,9 +124,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Constraint::Length(1),
         ])
         .split(f.size());
-
+    let title = app.model.board.title.clone();
     f.render_widget(
-        Paragraph::new(app.model.board.title).alignment(Alignment::Center),
+        Paragraph::new(title).alignment(Alignment::Center),
         sections[0],
     );
 

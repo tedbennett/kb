@@ -15,13 +15,13 @@ pub enum Popup<'a> {
 }
 
 pub struct Model<'a> {
-    pub board: Board<'a>,
+    pub board: Board,
     pub popup: Popup<'a>,
     pub quit: bool,
 }
 
 impl<'a> Model<'a> {
-    pub fn new(board: Board<'a>) -> Self {
+    pub fn new(board: Board) -> Self {
         let empty_board = board.columns.is_empty();
         Model {
             board,

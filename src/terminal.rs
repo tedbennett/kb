@@ -2,13 +2,10 @@ use crossterm::{
     event::DisableMouseCapture,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::error::Error;
 use std::io;
 use tui::{backend::CrosstermBackend, Terminal};
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
-
-pub fn init() -> Result<Terminal<CrosstermBackend<io::Stdout>>> {
+pub fn init() -> color_eyre::Result<Terminal<CrosstermBackend<io::Stdout>>> {
     crossterm::execute!(io::stdout(), EnterAlternateScreen)?;
     enable_raw_mode()?;
 
@@ -29,7 +26,7 @@ pub fn init() -> Result<Terminal<CrosstermBackend<io::Stdout>>> {
 }
 
 /// Resets the terminal.
-pub fn reset(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
+pub fn reset(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> color_eyre::Result<()> {
     disable_raw_mode()?;
 
     crossterm::execute!(

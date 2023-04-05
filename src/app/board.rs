@@ -1,19 +1,34 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::{Deserialize, Serialize};
-use std::{fs, io::Result};
+use std::fs;
 use tui::widgets::TableState;
 
 #[derive(Serialize, Deserialize)]
-pub struct Board<'a> {
-    pub title: &'a str,
+pub struct Board {
+    pub title: String,
     pub columns: Vec<Column>,
     #[serde(default, skip_serializing)]
     pub selected_column: usize,
     #[serde(default, skip_serializing)]
-    file_name: &'a str,
+    filename: String,
 }
 
-impl<'a> Board<'a> {
+impl Board {
+    pub fn create(filename: &str) -> color_eyre::Result<Self> {
+        _ = std::fs::File::create(filename)?;
+        let board = Self::new("", filename);
+        _ = board.save()?;
+        Ok(board)
+    }
+
+    pub fn new(title: &str, filename: &str) -> Self {
+        Self {
+            title: title.to_string(),
+            columns: Vec::new(),
+            selected_column: 0,
+            filename: filename.to_string(),
+        }
+    }
     pub fn selected_column(&mut self) -> Option<&mut Column> {
         if self.selected_column >= self.columns.len() {
             return None;
@@ -205,16 +220,16 @@ impl<'a> Board<'a> {
         _ = self.save().expect("Failed to write to file");
     }
 
-    pub fn from_file(file: &'a str, file_name: &'a str) -> Result<Self> {
-        let mut board: Board = serde_json::from_str(file)?;
+    pub fn from_file(file: String, file_name: String) -> color_eyre::Result<Self> {
+        let mut board: Board = serde_json::from_str(&file)?;
         board.select_column(0);
-        board.file_name = file_name;
+        board.filename = file_name;
         Ok(board)
     }
 
-    fn save(&self) -> Result<()> {
+    fn save(&self) -> color_eyre::Result<()> {
         let serialized = serde_json::to_string(self)?;
-        fs::write(self.file_name, serialized)?;
+        fs::write(&self.filename, serialized)?;
         Ok(())
     }
 }
