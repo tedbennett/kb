@@ -12,6 +12,7 @@ pub enum Popup<'a> {
     CreateColumn(ColumnPopupState<'a>),
     EditColumn(ColumnPopupState<'a>),
     DeleteColumn(DialogState),
+    // FilePicker(FilePickerState),
 }
 
 pub struct Model<'a> {
@@ -144,7 +145,13 @@ impl<'a> Model<'a> {
                 _ => state.on_keypress(key),
             },
             Popup::CreateColumn(state) => match key.code {
-                KeyCode::Esc => self.popup = Popup::None,
+                KeyCode::Esc => {
+                    if self.board.columns.is_empty() {
+                        self.quit = true;
+                    } else {
+                        self.popup = Popup::None;
+                    }
+                }
                 KeyCode::Enter => {
                     let title = &state.title.lines().join("");
                     self.create_column(title);

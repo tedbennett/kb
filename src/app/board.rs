@@ -5,7 +5,7 @@ use tui::widgets::TableState;
 
 #[derive(Serialize, Deserialize)]
 pub struct Board {
-    pub title: String,
+    pub title: Option<String>,
     pub columns: Vec<Column>,
     #[serde(default, skip_serializing)]
     pub selected_column: usize,
@@ -16,19 +16,33 @@ pub struct Board {
 impl Board {
     pub fn create(filename: &str) -> color_eyre::Result<Self> {
         _ = std::fs::File::create(filename)?;
-        let board = Self::new("", filename);
+        let board = Self::new(None, filename);
         _ = board.save()?;
         Ok(board)
     }
 
-    pub fn new(title: &str, filename: &str) -> Self {
+    pub fn new(title: Option<String>, filename: &str) -> Self {
         Self {
-            title: title.to_string(),
-            columns: Vec::new(),
+            title,
+            columns: vec![
+                Column::new("To Do".to_owned()),
+                Column::new("In Progress".to_owned()),
+                Column::new("Done".to_owned()),
+            ],
             selected_column: 0,
             filename: filename.to_string(),
         }
     }
+
+    pub fn title(&self) -> String {
+        self.title.clone().unwrap_or(
+            self.filename
+                .replace(".json", "_")
+                .replace("_", " ")
+                .clone(),
+        )
+    }
+
     pub fn selected_column(&mut self) -> Option<&mut Column> {
         if self.selected_column >= self.columns.len() {
             return None;
@@ -253,6 +267,16 @@ pub struct Column {
     pub rows: Vec<Row>,
     #[serde(default, skip_serializing, with = "TableStateDef")]
     pub state: TableState,
+}
+
+impl Column {
+    fn new(title: String) -> Self {
+        Column {
+            title,
+            rows: Vec::new(),
+            state: TableState::default(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
