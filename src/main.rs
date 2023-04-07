@@ -17,7 +17,10 @@ use tui::{
     widgets::Paragraph,
     Frame, Terminal,
 };
-use ui::{render_board, render_column_popup, render_dialog, render_item_popup, render_status_bar};
+use ui::{
+    render_board, render_column_popup, render_dialog, render_help_popup, render_item_popup,
+    render_status_bar,
+};
 const DEFAULT_FILENAME: &str = "kb.json";
 
 fn main() -> color_eyre::Result<()> {
@@ -76,6 +79,10 @@ fn parse_board<'a>(args: Cli) -> color_eyre::Result<Board> {
             // Make sure file does not already exist
             if Path::new(&filename).exists() {
                 return Err(Report::msg("File already exists"));
+            }
+            let protected_names = ["new", "filename", "kb", "help"];
+            if protected_names.contains(&filename.to_lowercase().as_str()) {
+                return Err(Report::msg("Cannot create board with protected filename"));
             }
             Board::create(&filename)
         }
@@ -138,6 +145,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         Popup::CreateColumn(state) => render_column_popup(f, "Create Column", state),
         Popup::EditColumn(state) => render_column_popup(f, "Edit Column", state),
         Popup::DeleteColumn(state) => render_dialog(f, "Delete Column?", state),
+        Popup::Help => render_help_popup(f),
         Popup::None => {}
     };
 }

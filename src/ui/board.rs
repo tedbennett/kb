@@ -22,7 +22,7 @@ pub fn render_board<B: Backend>(f: &mut Frame<B>, rect: Rect, board: &mut Board)
     board.columns.iter_mut().enumerate().for_each(|(i, col)| {
         let selected_style = Style::default().fg(Color::Green);
         let rows = col.rows.iter().map(|row| {
-            let height = row.description.chars().filter(|c| *c == '\n').count() + 2;
+            let height = row.description.lines().count() + 1;
             let mut text = Text::styled(&row.title, Style::default().add_modifier(Modifier::BOLD));
             text.extend(Text::styled(
                 &row.description,

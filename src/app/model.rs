@@ -12,6 +12,7 @@ pub enum Popup<'a> {
     CreateColumn(ColumnPopupState<'a>),
     EditColumn(ColumnPopupState<'a>),
     DeleteColumn(DialogState),
+    Help,
     // FilePicker(FilePickerState),
 }
 
@@ -102,6 +103,7 @@ impl<'a> Model<'a> {
                 KeyCode::Char('D') => {
                     self.popup = Popup::DeleteColumn(DialogState::new("Delete Column?"))
                 }
+                KeyCode::Esc => self.popup = Popup::Help,
                 _ => self.board.on_keypress(&key),
             },
             Popup::CreateRow(state) => match key {
@@ -176,6 +178,10 @@ impl<'a> Model<'a> {
                     }
                 }
                 _ => state.on_keypress(key),
+            },
+            Popup::Help => match key.code {
+                KeyCode::Esc | KeyCode::Enter | KeyCode::Char('q') => self.popup = Popup::None,
+                _ => {}
             },
         }
     }
