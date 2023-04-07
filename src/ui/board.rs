@@ -8,6 +8,22 @@ use tui::{
     widgets::{Block, Borders, Cell, Row as TuiRow, Table},
     Frame,
 };
+
+fn wrap_string(str: &str, length: usize) -> String {
+    str.chars()
+        .enumerate()
+        .flat_map(|(i, c)| {
+            if i != 0 && i % length == 0 {
+                Some('\n')
+            } else {
+                None
+            }
+            .into_iter()
+            .chain(std::iter::once(c))
+        })
+        .collect::<String>()
+}
+
 pub fn render_board<B: Backend>(f: &mut Frame<B>, rect: Rect, board: &mut Board) {
     if board.columns.len() == 0 {
         return;
@@ -20,12 +36,20 @@ pub fn render_board<B: Backend>(f: &mut Frame<B>, rect: Rect, board: &mut Board)
         .split(rect);
 
     board.columns.iter_mut().enumerate().for_each(|(i, col)| {
+        let rect_width: usize = rects[i].width as usize - 2;
         let selected_style = Style::default().fg(Color::Green);
         let rows = col.rows.iter().map(|row| {
-            let height = row.description.lines().count() + 1;
-            let mut text = Text::styled(&row.title, Style::default().add_modifier(Modifier::BOLD));
+            let title = wrap_string(&row.title, rect_width as usize);
+            let description = row
+                .description
+                .lines()
+                .map(|str| wrap_string(str, rect_width))
+                .collect::<Vec<String>>()
+                .join("\n");
+            let height = description.lines().count() + title.lines().count();
+            let mut text = Text::styled(title, Style::default().add_modifier(Modifier::BOLD));
             text.extend(Text::styled(
-                &row.description,
+                description,
                 Style::default().add_modifier(Modifier::ITALIC | Modifier::DIM),
             ));
             let cell = Cell::from(text);
